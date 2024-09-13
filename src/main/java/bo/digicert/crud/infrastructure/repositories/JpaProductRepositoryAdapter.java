@@ -46,13 +46,19 @@ public class JpaProductRepositoryAdapter implements ProductRepositoryPort {
 
     @Override
     public Optional<Product> update(Product product) {
-        if (jpaProductRepository.existsById(product.getId())) {
-            ProductEntity productEntity = ProductEntity.fromDomainModel(product);
-            ProductEntity updatedProductEntity = jpaProductRepository.save(productEntity);
-            return Optional.of(updatedProductEntity.toDomainModel());
+        if (product.getCategory_id() == null || !jpaCategoryRepository.existsById(product.getCategory_id())) {
+            throw new EntityNotFoundException("Category with id " + product.getCategory_id() + " not found", "Category");
         }
-        return Optional.empty();
+        var categoryEntity = jpaCategoryRepository.findById(product.getCategory_id())
+                .orElseThrow(() -> new EntityNotFoundException("Category with id " + product.getCategory_id() + " not found", "Category"));
+        product.setCategory(categoryEntity.toDomainModel());
+
+        ProductEntity productEntity = ProductEntity.fromDomainModel(product);
+        ProductEntity updatedProductEntity = jpaProductRepository.save(productEntity);
+
+        return Optional.of(updatedProductEntity.toDomainModel());
     }
+
 
     @Override
     public boolean deleteById(Long id) {
