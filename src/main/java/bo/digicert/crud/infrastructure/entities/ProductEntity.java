@@ -24,26 +24,14 @@ public class ProductEntity {
     @JoinColumn(name = "category_id")
     private CategoryEntity category;
 
-//    public static ProductEntity fromDomainModel(Product product) {
-//        return new ProductEntity(
-//                product.getId(),
-//                product.getName(),
-//                product.getPrice(),
-//                product.getCategory()
-//        );
-//    }
-//
-//    public Product toDomainModel() {
-//        return new Product(id, name, price, category);
-//    }
-public static ProductEntity fromDomainModel(Product product) {
-    return new ProductEntity(
-            product.getId(),
-            product.getName(),
-            product.getPrice(),
-            new CategoryEntity(product.getCategory().getId(), product.getCategory().getName())
-    );
-}
+	public static ProductEntity fromDomainModel(Product product) {
+		return new ProductEntity(
+				product.getId(),
+				product.getName(),
+				product.getPrice(),
+				new CategoryEntity(product.getCategory().getId(), product.getCategory().getName())
+		);
+	}
 
     public Product toDomainModel() {
         return new Product(
