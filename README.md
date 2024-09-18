@@ -639,3 +639,41 @@ This is a very simple API you can use for learning API Testing. It is built usin
 10. This project has basic authentication in place. So, the hit the endpoints you have to provide the username and password.
     - **username = admin**
     - **password = admin**
+
+```javascript
+{
+  "text": "Email text",
+  "html": "Email HTML",
+  "subject": "Email subject"
+}
+```
+
+```javascript
+{
+  "message": "Template not found",
+  "success": false,
+  "data": null
+}
+```
+```javascript
+{
+    "id" : 1,
+    "name" : "Password Reset Template",
+    "subject" : "{{.FirstName}}, please reset your password.",
+    "text" : "Please reset your password here: {{.URL}}",
+    "html" : "<html><head></head><body>Please reset your password <a href\"{{.URL}}\">here</a></body></html>",
+    "modified_date" : "2016-11-21T18:30:11.1477736-06:00",
+    "attachments" : [],
+}
+```
+```text
+{
+  id            : int64
+  name          : string
+  subject       : string
+  text          : string
+  html          : string
+  modified_date : string(datetime)
+  attachments   : list(attachment)
+}
+```
