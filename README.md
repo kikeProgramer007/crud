@@ -375,3 +375,267 @@ Just to round it all off, here’s a few examples of how our response will retur
     }
 }
 ```
+# API endpoints
+
+These endpoints allow you to handle Stripe subscriptions for Publish and Analyze.
+
+## GET
+`official client only` [/1/billing/retrieve-billing-data.json](#get-1billingretrieve-billing-datajson) <br/>
+
+## POST
+`official client only` [/1/billing/start-trial.json](#post-1billingstart-trialjson) <br/>
+`official client only` [/1/billing/cancel-trial.json](#post-1billingcancel-trialjson) <br/>
+`official client only` [/1/billing/start-or-update-subscription.json](#post-1billingstart-or-update-subscriptionjson) <br/>
+`official client only` [/1/billing/cancel-subscription.json](#post-1billingcancel-subscriptionjson) <br/>
+___
+
+### GET /1/billing/retrieve-billing-data.json
+Get basics billing data for the current user or for a given organization ID (as long as the current user is part of that organization). (it has been poorly implemented for now to unblock the Analyze team, and should only be used by Analyze) `official client only`
+
+**Parameters**
+
+|          Name | Required |  Type   | Description                                                                                                                                                           |
+| -------------:|:--------:|:-------:| --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+|     `product` | required | string  | The product for which to perform the action. <br/><br/> Supported values: `publish` or `analyze`.                                                                     |
+|     `organization_id` | optional | string  | The organization ID for which to perform the action. <br/><br/> Default is `null`. <br/><br/> If passed, we will check if the user is part of that organization before returning any information.                                                                     |
+
+**Response**
+
+```
+// Customer has no subscription
+{
+    "success": true,
+    "data": {
+        "subscriptions": []
+    }
+}
+
+or
+
+// Customer has one paying subscription
+{
+    "success": true,
+    "data": {
+        "subscriptions": [
+            0 => [
+                "plan_name": "early-access-10", //could be any supported plan
+                "quantity": 11,
+                "cycle": "month|year",
+                "current_period_end": 1531897966, //timestamp in seconds
+                "cancel_at_period_end": true|false,
+                is_paying: true,
+                is_trialing: false
+            ]
+        ]
+    }
+}
+
+or
+
+// Customer has one trialing subscription
+{
+    "success": true,
+    "data": {
+        "subscriptions": [
+            0 => [
+                "plan_name": "early-access-10", //could be any supported plan
+                "quantity": 11,
+                "cycle": "month|year",
+                "current_period_end": 1531897966, //timestamp in seconds
+                "cancel_at_period_end": true|false,
+                is_paying: false,
+                is_trialing: true
+            ]
+        ]
+    }
+}
+
+or
+
+// Customer has two subscriptions
+{
+    "success": true,
+    "data": {
+        "subscriptions": [
+            0 => [
+                "plan_name": "pro", //could be any supported plan
+                "quantity": 1,
+                "cycle": "month|year",
+                "current_period_end": 1531897966, //timestamp in seconds
+                "cancel_at_period_end": true|false,
+                is_paying: true,
+                is_trialing: false
+            ],
+            1 => [
+                "plan_name": "business", //could be any supported plan
+                "quantity": 1,
+                "cycle": "month|year",
+                "current_period_end": 1531897966, //timestamp in seconds
+                "cancel_at_period_end": true|false,
+                is_paying: false,
+                is_trialing: true
+            ]
+        ]
+    }
+}
+
+
+or any implemented error from https://buffer.com/developers/api/errors
+
+{
+    "code": 1000,
+    "error": "An error message"
+}
+```
+___
+
+### POST /1/billing/start-trial.json
+Starts a trial for a user. `official client only`
+
+**Parameters**
+
+|          Name | Required |  Type   | Description                                                                                                                                                           |
+| -------------:|:--------:|:-------:| --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+|     `product` | required | string  | The product for which to perform the action. <br/><br/> Supported values: `publish` or `analyze`.                                                                     |
+|        `plan` | required | string  | The plan for which to start the trial period. <br/><br/> Supported values for Publish: `pro`, `small`, `business`, `agency`.  <br/>Supported values for Analyze: `early-access-10`, `early-access-25`, `early-access-50`, `early-access-100`. |
+| `trialLength` | optional | integer | Length of the trial in days. <br/><br/>Default is `null`. <br/><br/>If value is null, relies on the product hook logic to define the trial length for the given plan and product.                    |
+|       `cycle` | optional | string  | Default is `null`. <br/><br/>If value is null, relies on the product hook logic to define the cycle. <br/><br/> Supported values: `null`, `month` or `year`          |
+|    `quantity` | optional | integer  | Default is `1`. <br/><br/>This value (either default or passed) will always override the current subscription quantity value.          |
+|    `cta` | optional | string  | Can be used for tracking purpose - [Read more](https://github.com/bufferapp/README/tree/master/runbooks/data-tracking)          |
+
+**Response**
+
+```
+{
+    "success": true
+}
+
+or any implemented error from https://buffer.com/developers/api/errors
+
+{
+    "code": 1000,
+    "error": "An error message"
+}
+```
+___
+
+### POST /1/billing/cancel-trial.json
+Cancels a trial for a user. `official client only`
+
+**Parameters**
+
+|          Name | Required |  Type   | Description                                                                                                                                                         |
+| -------------:|:--------:|:-------:| ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+|     `product` | required | string  | The product for which to perform the action. <br/><br/> Supported values: `publish` or `analyze`.                                                                   |
+|    `cta` | optional | string  | Can be used for tracking purpose - [Read more](https://github.com/bufferapp/README/tree/master/runbooks/data-tracking)          |
+
+**Response**
+
+```
+{
+    "success": true
+}
+
+or any implemented error from https://buffer.com/developers/api/errors
+
+{
+    "code": 1000,
+    "error": "An error message"
+}
+```
+___
+
+### POST /1/billing/start-or-update-subscription.json
+Starts a new subscription or updates an existing one. Can (and should) also be used to complete a trial period. `official client only`
+
+**Parameters**
+
+|          Name | Required |   Type  | Description                                                                                                                                                         |
+| -------------:|:--------:|:-------:| ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+|     `product` | required | string  | The product for which to perform the action. <br/><br/> Supported values: `publish` or `analyze`.                                                                   |
+|        `plan` | required | string  | The plan for which to start a subscription. <br/><br/> Supported values for Publish: `pro`, `small`, `business`, `agency`.  <br/>Supported values for Analyze: `early-access-10`, `early-access-25`, `early-access-50`, `early-access-100`. |
+| `stripeToken` | optional | string | Is `required` only the first time when the Stripe customer has no registered credit card. <br/><br/>Stripe tokens are usually generated on the frontend: see [Stripe doc](https://stripe.com/docs/stripe-js/elements/quickstart#create-token) and as an example [Add credit card form Buffer component](https://github.com/bufferapp/buffer-web/blob/master/app/webroot/js/creditCard/components/addCreditCardForm.jsx).<br/><br/>*Stripe will error if we start/update a subscription for a customer who has no credit card: only trials can be started without a credit card.*  <br/> *Please use [/1/billing/start-trial.json](#post-1billingstart-trialjson) to start a trial.*|
+|       `cycle` | optional | string | Default is `null`. <br/><br/>If value is null, relies on the product hook logic to define the cycle. <br/><br/> Support values: `null`, `month` or `year`          |
+|    `quantity` | optional | integer  | Default is `1`.  <br/><br/>This value (either default or passed) will always override the current subscription quantity value.         |
+|    `cta` | optional | string  | Can be used for tracking purpose - [Read more](https://github.com/bufferapp/README/tree/master/runbooks/data-tracking)          |
+
+**Response**
+
+```
+{
+    "success": true
+}
+
+or any implemented error from https://buffer.com/developers/api/errors
+
+{
+    "code": 1000,
+    "error": "An error message"
+}
+```
+___
+
+### POST /1/billing/cancel-subscription.json
+Cancels an existing subscription. Will cancel any existing and trialing subscriptions. `official client only`
+
+**Parameters**
+
+|          Name | Required |  Type   | Description                                                                                                                                                         |
+| -------------:|:--------:|:-------:| ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+|     `product` | required | string  | The product for which to perform the action. <br/><br/> Supported values: `publish` or `analyze`.                                                                   |
+| `atPeriodEnd` | optional | boolean | Default is `true`. Specifies if the subscription should be deleted now or when the subscription is due to end. <br/><br/> *Common use case is to pass `true` since we want to let the customers use the full period they paid for.* <br/>*Should only pass `false` (i.e. cancel the subscription right now) when a Stripe customer switches to iOS/Android.)* |
+|    `cta` | optional | string  | Can be used for tracking purpose - [Read more](https://github.com/bufferapp/README/tree/master/runbooks/data-tracking)          |
+
+**Response**
+
+```
+{
+    "success": true
+}
+
+or any implemented error from https://buffer.com/developers/api/errors
+
+{
+    "code": 1000,
+    "error": "An error message"
+}
+```
+# demo-api-testing
+
+This is a very simple API you can use for learning API Testing. It is built using express and nodejs. It stores data into a JSON File stored under "database" folder with the name "PFMembers.json". There are seven endpoints in this api.
+
+1. ### Members - http://localhost:5002/api/members
+    * GET ALL (/) - This will return all the members. You can also use query parameter to filter out based on gender.
+    * GET (/ID) - You can retrieve a specific member based on it's ID.
+    * POST (/) - You can POST a new members into PFMembers.json file.
+    * PUT (/ID) - You can UPDATE an existing member into PFMembers.json file by providing BOTH NAME and GENDER.
+    * PATCH (/ID) - You can UPDATE an existing member into PFMembers.json file by providing either NAME or GENDER or BOTH.
+    * DELETE (/ID) - You can DELETE an existing member into PFMembers.json file.
+    * Both JSON and XML responses are available.
+2. ### File Upload - http://localhost:5002/api/upload
+    * POST (/) - You can POST a new FILE into fileuploads folder.
+3. ### File Download - http://localhost:5002/api/download?name=FileNameWithExtension
+    * GET (/) - You can download a FILE. e.g. http://localhost:5002/api/download?name=Test.jpg
+4. ### Delayed Response - http://localhost:5002/api/lag?delay=TimeInMilliSeconds
+    * Change TimeInMilliSeconds with Appropriate Value e.g. http://localhost:5002/api/lag?delay=3000 would delay the response by 3 Seconds
+5. ### Mandatory Header in the Request - http://localhost:5002/api/sendheader
+    * Error if channelName header is not set in the Request Object.
+6. ### Vehicles - http://localhost:5002/api/vehicles
+    * GET ALL (/) - This will return all the vehicles. 
+7. ### Authors - http://localhost:5002/api/authors
+    * GET ALL (/) - This will return all the authors. 
+8. ### INSTALLATION STEPS
+      * Install node.js
+      * Install VS Code as IDE
+      * Install nodemon globally by opening terminal and running the following command : -
+         - **npm install nodemon -g**
+      * Download this project on to your system
+      * Open the Project in VS Code and in the integrated terminal of VS Code run the following command: -
+         - **npm install**
+      * To start the project type the following command in the integrated terminal of VS Code: -
+         - **npm start**
+9. By default this project runs on PORT 5002; to change it kindly open app.js file and update the following line of code: -
+    - **const PORT = process.env.PORT || 5002**
+10. This project has basic authentication in place. So, the hit the endpoints you have to provide the username and password.
+    - **username = admin**
+    - **password = admin**
